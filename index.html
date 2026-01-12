@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galactic Todo - Star Wars</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            min-height: 100vh;
+            color: #e0e0e0;
+            overflow-x: hidden;
+        }
+
+        /* 우주 배경 + 별 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .stars::before,
+        .stars::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .stars::before {
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+                radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+                radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 160px 120px, #fff, transparent),
+                radial-gradient(2px 2px at 200px 50px, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1px 1px at 250px 160px, #fff, transparent),
+                radial-gradient(2px 2px at 300px 100px, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 350px 200px, #fff, transparent),
+                radial-gradient(2px 2px at 400px 150px, rgba(255,255,255,0.8), transparent);
+            background-size: 400px 300px;
+            animation: twinkle 4s infinite;
+        }
+
+        .stars::after {
+            background-image:
+                radial-gradient(1px 1px at 50px 100px, #4fd1ff, transparent),
+                radial-gradient(2px 2px at 100px 200px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 150px 50px, #ffe81f, transparent),
+                radial-gradient(2px 2px at 200px 180px, rgba(255,255,255,0.7), transparent),
+                radial-gradient(1px 1px at 280px 90px, #4fd1ff, transparent),
+                radial-gradient(2px 2px at 320px 250px, rgba(255,255,255,0.5), transparent),
+                radial-gradient(1px 1px at 380px 130px, #fff, transparent);
+            background-size: 500px 350px;
+            animation: twinkle 6s infinite reverse;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* 다스베이더 실루엣 (CSS로 제작) */
+        .vader {
+            position: fixed;
+            bottom: 0;
+            right: 20px;
+            z-index: 0;
+            pointer-events: none;
+            opacity: 0.35;
+            transform: scale(0.8);
+        }
+
+        /* 베이더 헬멧 */
+        .vader-helmet {
+            width: 120px;
+            height: 140px;
+            background: #0a0a0a;
+            border-radius: 60px 60px 40px 40px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        /* 헬멧 상단 돔 */
+        .vader-helmet::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 40px;
+            background: #0a0a0a;
+            border-radius: 40px 40px 0 0;
+        }
+
+        /* 마스크 디테일 */
+        .vader-mask {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 60px;
+        }
+
+        /* 눈 부분 */
+        .vader-eyes {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5px;
+        }
+
+        .vader-eye {
+            width: 30px;
+            height: 15px;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 0 0 15px 15px;
+            box-shadow: inset 0 0 10px rgba(255,0,0,0.3);
+        }
+
+        /* 호흡기 */
+        .vader-breather {
+            width: 40px;
+            height: 30px;
+            background: #0a0a0a;
+            margin: 15px auto 0;
+            border-radius: 5px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 3px;
+            padding: 5px;
+            justify-content: center;
+        }
+
+        .vader-breather span {
+            width: 8px;
+            height: 4px;
+            background: #1a1a1a;
+            border-radius: 2px;
+        }
+
+        /* 몸체 */
+        .vader-body {
+            width: 200px;
+            height: 300px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #050505 100%);
+            margin: -10px auto 0;
+            border-radius: 10px 10px 0 0;
+            position: relative;
+        }
+
+        /* 가슴 패널 */
+        .vader-chest {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 80px;
+            background: #1a1a1a;
+            border: 2px solid #2a2a2a;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 5px;
+        }
+
+        .vader-chest-light {
+            width: 100%;
+            height: 8px;
+            border-radius: 2px;
+        }
+
+        .vader-chest-light:nth-child(1) { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+        .vader-chest-light:nth-child(2) { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
+        .vader-chest-light:nth-child(3) { background: #0088ff; box-shadow: 0 0 10px #0088ff; }
+        .vader-chest-light:nth-child(4) { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+
+        /* 레드 라이트세이버 */
+        .lightsaber-red {
+            position: fixed;
+            bottom: 80px;
+            right: 200px;
+            width: 6px;
+            height: 180px;
+            background: linear-gradient(180deg,
+                rgba(255,0,0,0.6) 0%,
+                rgba(255,50,50,0.4) 60%,
+                rgba(255,100,100,0.2) 85%,
+                transparent 100%);
+            border-radius: 4px;
+            box-shadow:
+                0 0 15px rgba(255,0,0,0.5),
+                0 0 30px rgba(255,0,0,0.3);
+            transform: rotate(20deg) scale(0.8);
+            animation: saberGlow 2s ease-in-out infinite;
+            z-index: 0;
+            opacity: 0.5;
+        }
+
+        /* 라이트세이버 손잡이 */
+        .lightsaber-red::after {
+            content: '';
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 14px;
+            height: 40px;
+            background: linear-gradient(90deg, #2a2a2a, #4a4a4a, #2a2a2a);
+            border-radius: 3px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        @keyframes saberGlow {
+            0%, 100% { opacity: 0.9; filter: brightness(1); }
+            50% { opacity: 1; filter: brightness(1.2); }
+        }
+
+        /* 베이더 숨쉬기 애니메이션 */
+        .vader {
+            animation: vaderBreathe 4s ease-in-out infinite;
+        }
+
+        @keyframes vaderBreathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.01); }
+        }
+
+        /* 시네마틱 비네트 효과 */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(ellipse at center,
+                transparent 0%,
+                transparent 50%,
+                rgba(0,0,0,0.4) 100%);
+        }
+
+        /* 붉은 경고등 효과 (제국 느낌) */
+        .imperial-glow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: radial-gradient(ellipse at bottom right,
+                rgba(255, 0, 0, 0.03) 0%,
+                transparent 50%);
+            animation: imperialPulse 4s ease-in-out infinite;
+        }
+
+        @keyframes imperialPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 헤더 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 232, 31, 0.2);
+        }
+
+        .header h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(180deg, #ffe81f 0%, #ffa500 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(255, 232, 31, 0.5);
+            letter-spacing: 2px;
+        }
+
+        /* 탭 네비게이션 */
+        .tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: rgba(20, 30, 50, 0.8);
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            border-radius: 8px;
+            color: #8899aa;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .tab:hover {
+            background: rgba(30, 50, 80, 0.9);
+            color: #4fd1ff;
+            border-color: rgba(79, 209, 255, 0.5);
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.2) 0%, rgba(79, 209, 255, 0.1) 100%);
+            border-color: #4fd1ff;
+            color: #4fd1ff;
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.3), inset 0 0 20px rgba(79, 209, 255, 0.1);
+        }
+
+        /* 메인 레이아웃 */
+        .main {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 900px) {
+            .main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 달력 */
+        .calendar-section {
+            background: rgba(10, 18, 35, 0.97);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(79, 209, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .calendar-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffe81f;
+            letter-spacing: 1px;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 8px;
+        }
+
+        .calendar-nav button {
+            width: 36px;
+            height: 36px;
+            background: rgba(79, 209, 255, 0.1);
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            border-radius: 8px;
+            color: #4fd1ff;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+        }
+
+        .calendar-nav button:hover {
+            background: rgba(79, 209, 255, 0.2);
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.3);
+        }
+
+        .calendar-weekdays {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+
+        .weekday {
+            text-align: center;
+            font-size: 11px;
+            color: #ffe81f;
+            padding: 8px 0;
+            font-weight: 600;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+        }
+
+        .calendar-days {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(20, 35, 60, 0.8);
+            border: 1px solid rgba(79, 209, 255, 0.15);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            font-size: 14px;
+            font-weight: 600;
+            color: #d0e0f0;
+        }
+
+        .calendar-day:hover {
+            background: rgba(79, 209, 255, 0.15);
+            border-color: rgba(79, 209, 255, 0.4);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(79, 209, 255, 0.2);
+        }
+
+        .calendar-day.other-month {
+            color: #3a4a5a;
+            background: rgba(10, 15, 25, 0.4);
+        }
+
+        .calendar-day.today {
+            border-color: #ffe81f;
+            background: rgba(255, 232, 31, 0.1);
+            color: #ffe81f;
+            box-shadow: 0 0 15px rgba(255, 232, 31, 0.2);
+        }
+
+        .calendar-day.selected {
+            background: linear-gradient(135deg, rgba(79, 209, 255, 0.3) 0%, rgba(79, 209, 255, 0.15) 100%);
+            border-color: #4fd1ff;
+            color: #4fd1ff;
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.4), inset 0 0 15px rgba(79, 209, 255, 0.1);
+        }
+
+        .calendar-day .dot {
+            position: absolute;
+            bottom: 5px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 8px #00ff00;
+        }
+
+        .calendar-day .dot.incomplete {
+            background: #ff6b35;
+            box-shadow: 0 0 8px #ff6b35;
+        }
+
+        .calendar-day.selected .dot {
+            background: #4fd1ff;
+            box-shadow: 0 0 8px #4fd1ff;
+        }
+
+        /* 통계 미니 */
+        .stats-mini {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(79, 209, 255, 0.15);
+        }
+
+        .stat-mini {
+            text-align: center;
+            padding: 12px;
+            background: rgba(79, 209, 255, 0.05);
+            border: 1px solid rgba(79, 209, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-mini-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+            color: #4fd1ff;
+            text-shadow: 0 0 10px rgba(79, 209, 255, 0.5);
+        }
+
+        .stat-mini-label {
+            font-size: 10px;
+            color: #8899aa;
+            margin-top: 4px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* 할일 섹션 */
+        .todo-section {
+            background: rgba(10, 18, 35, 0.97);
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.7), inset 0 0 30px rgba(79, 209, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .todo-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .todo-date {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .todo-date span {
+            color: #ffe81f;
+            font-weight: 500;
+            font-size: 12px;
+            margin-left: 10px;
+            background: rgba(255, 232, 31, 0.15);
+            padding: 4px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 232, 31, 0.3);
+        }
+
+        /* 입력 폼 */
+        .input-form {
+            background: rgba(15, 28, 50, 0.9);
+            border: 1px solid rgba(79, 209, 255, 0.25);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .input-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .input-form input[type="text"] {
+            flex: 1;
+            padding: 14px 18px;
+            background: rgba(20, 35, 60, 0.8);
+            border: 2px solid rgba(79, 209, 255, 0.3);
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .input-form input[type="text"]::placeholder {
+            color: #5a6a7a;
+        }
+
+        .input-form input[type="text"]:focus {
+            outline: none;
+            border-color: #4fd1ff;
+            background: rgba(25, 45, 75, 0.9);
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.2);
+        }
+
+        .input-form input[type="time"] {
+            padding: 14px 18px;
+            background: rgba(20, 35, 60, 0.8);
+            border: 2px solid rgba(79, 209, 255, 0.3);
+            border-radius: 10px;
+            color: #e0e0e0;
+            font-size: 14px;
+            font-family: inherit;
+            color-scheme: dark;
+        }
+
+        .input-form select {
+            padding: 14px 18px;
+            background: rgba(15, 25, 45, 0.95);
+            border: 2px solid rgba(79, 209, 255, 0.4);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .input-form select option {
+            background: #0f1932;
+            color: #ffffff;
+            padding: 10px;
+        }
+
+        .input-form select:focus {
+            outline: none;
+            border-color: #4fd1ff;
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.3);
+        }
+
+        .input-form button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+            border: none;
+            border-radius: 10px;
+            color: #000;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+        }
+
+        .input-form button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.6);
+        }
+
+        /* 타입 뱃지 */
+        .type-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            margin-right: 10px;
+        }
+
+        .type-badge.todo {
+            background: rgba(79, 209, 255, 0.2);
+            color: #4fd1ff;
+            border: 1px solid rgba(79, 209, 255, 0.4);
+        }
+
+        .type-badge.schedule {
+            background: rgba(255, 232, 31, 0.2);
+            color: #ffe81f;
+            border: 1px solid rgba(255, 232, 31, 0.4);
+        }
+
+        .type-badge.meeting {
+            background: rgba(255, 100, 255, 0.2);
+            color: #ff64ff;
+            border: 1px solid rgba(255, 100, 255, 0.4);
+        }
+
+        /* 중요도 표시 */
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .priority-dot.high {
+            background: #ff3232;
+            box-shadow: 0 0 10px #ff3232;
+        }
+
+        .priority-dot.normal {
+            background: #ffaa00;
+            box-shadow: 0 0 10px #ffaa00;
+        }
+
+        .priority-dot.low {
+            background: #00cc00;
+            box-shadow: 0 0 10px #00cc00;
+        }
+
+        /* 시간 표시 */
+        .todo-time {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            color: #4fd1ff;
+            margin-right: 12px;
+            min-width: 50px;
+        }
+
+        /* 카테고리 표시 */
+        .category-tag {
+            padding: 3px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            font-size: 10px;
+            color: #8899aa;
+            margin-left: 10px;
+        }
+
+        /* 할일 아이템 업데이트 */
+        .todo-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        /* 할일 리스트 */
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .todo-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .todo-list::-webkit-scrollbar-track {
+            background: rgba(79, 209, 255, 0.05);
+            border-radius: 3px;
+        }
+
+        .todo-list::-webkit-scrollbar-thumb {
+            background: rgba(79, 209, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: rgba(20, 35, 60, 0.6);
+            border: 1px solid rgba(79, 209, 255, 0.15);
+            border-radius: 10px;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .todo-item:hover {
+            background: rgba(30, 50, 80, 0.7);
+            border-color: rgba(79, 209, 255, 0.3);
+            transform: translateX(4px);
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.1);
+        }
+
+        .todo-item.completed {
+            opacity: 0.5;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #5a6a7a;
+        }
+
+        .todo-checkbox {
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid rgba(79, 209, 255, 0.4);
+            border-radius: 6px;
+            margin-right: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            flex-shrink: 0;
+            background: rgba(79, 209, 255, 0.05);
+        }
+
+        .todo-checkbox:hover {
+            border-color: #4fd1ff;
+            box-shadow: 0 0 10px rgba(79, 209, 255, 0.3);
+        }
+
+        .todo-checkbox:checked {
+            background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+            border-color: #00ff00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        .todo-checkbox:checked::after {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 3px;
+            width: 6px;
+            height: 11px;
+            border: solid #000;
+            border-width: 0 2.5px 2.5px 0;
+            transform: rotate(45deg);
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 15px;
+            color: #e8f0f8;
+            font-weight: 500;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: all 0.3s;
+        }
+
+        .todo-item:hover .todo-actions {
+            opacity: 1;
+        }
+
+        .todo-btn {
+            padding: 8px 14px;
+            background: rgba(79, 209, 255, 0.1);
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            border-radius: 6px;
+            color: #6a8a9a;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .todo-btn.move:hover {
+            background: rgba(79, 209, 255, 0.2);
+            border-color: #4fd1ff;
+            color: #4fd1ff;
+            box-shadow: 0 0 10px rgba(79, 209, 255, 0.3);
+        }
+
+        .todo-btn.delete:hover {
+            background: rgba(255, 50, 50, 0.2);
+            border-color: #ff3232;
+            color: #ff3232;
+            box-shadow: 0 0 10px rgba(255, 50, 50, 0.3);
+        }
+
+        /* 날짜 이동 모달 */
+        .move-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .move-modal.active {
+            display: flex;
+        }
+
+        .move-modal-content {
+            background: rgba(15, 25, 45, 0.98);
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            border-radius: 16px;
+            padding: 28px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 0 60px rgba(79, 209, 255, 0.2);
+            animation: modalIn 0.3s ease;
+        }
+
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .move-modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            color: #ffe81f;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .move-modal-todo {
+            font-size: 14px;
+            color: #8899aa;
+            margin-bottom: 20px;
+            padding: 12px;
+            background: rgba(79, 209, 255, 0.05);
+            border: 1px solid rgba(79, 209, 255, 0.15);
+            border-radius: 8px;
+        }
+
+        .move-modal-input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(20, 35, 60, 0.8);
+            border: 2px solid rgba(79, 209, 255, 0.3);
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            color: #e0e0e0;
+            color-scheme: dark;
+        }
+
+        .move-modal-input:focus {
+            outline: none;
+            border-color: #4fd1ff;
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.2);
+        }
+
+        .move-modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .move-modal-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .move-modal-btn.cancel {
+            background: rgba(100, 100, 120, 0.3);
+            border: 1px solid rgba(150, 150, 170, 0.3);
+            color: #8899aa;
+        }
+
+        .move-modal-btn.cancel:hover {
+            background: rgba(100, 100, 120, 0.5);
+            color: #c0c0c0;
+        }
+
+        .move-modal-btn.confirm {
+            background: linear-gradient(135deg, #4fd1ff 0%, #00a8e8 100%);
+            color: #000;
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.4);
+        }
+
+        .move-modal-btn.confirm:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(79, 209, 255, 0.6);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #5a6a7a;
+        }
+
+        .empty-state::before {
+            content: '🚀';
+            display: block;
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* 통계 페이지 */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .stats-card {
+            background: rgba(15, 25, 45, 0.9);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        .stats-card-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 40px;
+            font-weight: 700;
+            color: #4fd1ff;
+            text-shadow: 0 0 20px rgba(79, 209, 255, 0.5);
+        }
+
+        .stats-card-label {
+            font-size: 12px;
+            color: #8899aa;
+            margin-top: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chart-section {
+            background: rgba(15, 25, 45, 0.9);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        .chart-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            color: #ffe81f;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .chart-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            height: 160px;
+            padding: 0 10px;
+        }
+
+        .chart-bar-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chart-bar {
+            width: 100%;
+            max-width: 50px;
+            background: linear-gradient(180deg, #4fd1ff 0%, #00a8e8 100%);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+            min-height: 4px;
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.4);
+        }
+
+        .chart-bar-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            color: #8899aa;
+            font-weight: 500;
+        }
+
+        .insights {
+            background: rgba(15, 25, 45, 0.9);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(79, 209, 255, 0.1);
+        }
+
+        .insight-item:last-child {
+            border-bottom: none;
+        }
+
+        .insight-icon {
+            font-size: 24px;
+        }
+
+        .insight-text {
+            font-size: 14px;
+            color: #a0b0c0;
+            font-weight: 450;
+        }
+
+        /* 페이지 전환 */
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        /* 설정 페이지 */
+        .settings-section {
+            background: rgba(15, 25, 45, 0.9);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.3);
+        }
+
+        .settings-section.danger {
+            border-color: rgba(255, 50, 50, 0.4);
+        }
+
+        .settings-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: #ffe81f;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .settings-desc {
+            font-size: 14px;
+            color: #8899aa;
+            margin-bottom: 20px;
+        }
+
+        .settings-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .settings-btn {
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #4fd1ff 0%, #00a8e8 100%);
+            border: none;
+            border-radius: 8px;
+            color: #000;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 0 20px rgba(79, 209, 255, 0.4);
+        }
+
+        .settings-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(79, 209, 255, 0.6);
+        }
+
+        .settings-btn.reset {
+            background: linear-gradient(135deg, #ff3232 0%, #ff5555 100%);
+            box-shadow: 0 0 20px rgba(255, 50, 50, 0.4);
+        }
+
+        .settings-btn.reset:hover {
+            box-shadow: 0 0 30px rgba(255, 50, 50, 0.6);
+        }
+
+        .settings-list {
+            padding-left: 20px;
+            color: #a0b0c0;
+            font-size: 14px;
+            line-height: 2;
+        }
+
+        .settings-list strong {
+            color: #4fd1ff;
+        }
+
+        /* 로그인/유저 영역 */
+        .user-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .login-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: #e0e0e0;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .login-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: #4fd1ff;
+            color: #4fd1ff;
+        }
+
+        .login-btn img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #4fd1ff;
+            box-shadow: 0 0 10px rgba(79, 209, 255, 0.3);
+        }
+
+        .user-name {
+            font-size: 12px;
+            color: #a0b0c0;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .logout-btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid rgba(255, 50, 50, 0.4);
+            border-radius: 6px;
+            color: #ff6666;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255, 50, 50, 0.2);
+            border-color: #ff3232;
+        }
+
+        .sync-status {
+            font-size: 10px;
+            color: #00ff00;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sync-status.offline {
+            color: #ff6b35;
+        }
+
+        .sync-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff00;
+            box-shadow: 0 0 8px #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        .sync-status.offline .sync-dot {
+            background: #ff6b35;
+            box-shadow: 0 0 8px #ff6b35;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .header-right {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 스타워즈 시네마틱 배경 -->
+    <div class="stars"></div>
+    <div class="vignette"></div>
+    <div class="imperial-glow"></div>
+    <div class="lightsaber-red"></div>
+    <div class="vader">
+        <div class="vader-helmet">
+            <div class="vader-mask">
+                <div class="vader-eyes">
+                    <div class="vader-eye"></div>
+                    <div class="vader-eye"></div>
+                </div>
+                <div class="vader-breather">
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+        <div class="vader-body">
+            <div class="vader-chest">
+                <div class="vader-chest-light"></div>
+                <div class="vader-chest-light"></div>
+                <div class="vader-chest-light"></div>
+                <div class="vader-chest-light"></div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>GALACTIC TODO</h1>
+                <div class="tabs">
+                    <button class="tab active" data-tab="main">MISSIONS</button>
+                    <button class="tab" data-tab="stats">ANALYTICS</button>
+                    <button class="tab" data-tab="settings">CONTROL</button>
+                </div>
+            </div>
+            <div class="header-right">
+                <div id="syncStatus" class="sync-status offline">
+                    <span class="sync-dot"></span>
+                    <span>LOCAL MODE</span>
+                </div>
+                <div id="userArea" class="user-area">
+                    <button class="login-btn" onclick="googleLogin()">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        CONNECT
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 메인 페이지 -->
+        <div class="page active" id="main-page">
+            <div class="main">
+                <!-- 달력 -->
+                <div class="calendar-section">
+                    <div class="calendar-header">
+                        <span class="calendar-title" id="calendarTitle"></span>
+                        <div class="calendar-nav">
+                            <button onclick="changeMonth(-1)">‹</button>
+                            <button onclick="changeMonth(1)">›</button>
+                        </div>
+                    </div>
+                    <div class="calendar-weekdays">
+                        <div class="weekday">일</div>
+                        <div class="weekday">월</div>
+                        <div class="weekday">화</div>
+                        <div class="weekday">수</div>
+                        <div class="weekday">목</div>
+                        <div class="weekday">금</div>
+                        <div class="weekday">토</div>
+                    </div>
+                    <div class="calendar-days" id="calendarDays"></div>
+
+                    <div class="stats-mini">
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="monthTotal">0</div>
+                            <div class="stat-mini-label">이번 달 할일</div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="monthCompleted">0</div>
+                            <div class="stat-mini-label">완료</div>
+                        </div>
+                        <div class="stat-mini">
+                            <div class="stat-mini-value" id="monthRate">0%</div>
+                            <div class="stat-mini-label">달성률</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 할일 -->
+                <div class="todo-section">
+                    <div class="todo-header">
+                        <div class="todo-date">
+                            <span id="selectedDateTitle"></span>
+                            <span id="selectedDateSub"></span>
+                        </div>
+                    </div>
+
+                    <div class="input-form">
+                        <div class="input-row">
+                            <input type="text" id="todoInput" placeholder="Enter your mission..." onkeypress="handleKeyPress(event)">
+                        </div>
+                        <div class="input-row">
+                            <select id="todoType">
+                                <option value="todo">📋 할일</option>
+                                <option value="schedule">📅 일정</option>
+                                <option value="meeting">👥 미팅</option>
+                            </select>
+                            <input type="time" id="todoTime">
+                            <select id="todoPriority">
+                                <option value="normal">🟡 보통</option>
+                                <option value="high">🔴 중요</option>
+                                <option value="low">🟢 낮음</option>
+                            </select>
+                            <select id="todoCategory">
+                                <option value="">카테고리</option>
+                                <option value="work">업무</option>
+                                <option value="personal">개인</option>
+                                <option value="health">건강</option>
+                                <option value="study">공부</option>
+                            </select>
+                            <button onclick="addTodo()">DEPLOY</button>
+                        </div>
+                    </div>
+
+                    <div class="todo-list" id="todoList"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 통계 페이지 -->
+        <div class="page" id="stats-page">
+            <div class="stats-grid">
+                <div class="stats-card">
+                    <div class="stats-card-value" id="totalTodos">0</div>
+                    <div class="stats-card-label">전체 할일</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-card-value" id="totalCompleted">0</div>
+                    <div class="stats-card-label">완료한 할일</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-card-value" id="totalRate">0%</div>
+                    <div class="stats-card-label">전체 달성률</div>
+                </div>
+                <div class="stats-card">
+                    <div class="stats-card-value" id="streakDays">0</div>
+                    <div class="stats-card-label">연속 달성일</div>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <div class="chart-title">최근 7일 달성률</div>
+                <div class="chart-bars" id="weeklyChart"></div>
+            </div>
+
+            <div class="insights">
+                <div class="chart-title">분석</div>
+                <div id="insightsList"></div>
+            </div>
+        </div>
+
+        <!-- 날짜 이동 모달 -->
+        <div class="move-modal" id="moveModal" onclick="closeMoveModal(event)">
+            <div class="move-modal-content" onclick="event.stopPropagation()">
+                <div class="move-modal-title">날짜 이동</div>
+                <div class="move-modal-todo" id="moveModalTodo"></div>
+                <input type="date" class="move-modal-input" id="moveModalDate">
+                <div class="move-modal-buttons">
+                    <button class="move-modal-btn cancel" onclick="closeMoveModal()">취소</button>
+                    <button class="move-modal-btn confirm" onclick="confirmMoveTodo()">이동</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 설정 페이지 -->
+        <div class="page" id="settings-page">
+            <div class="settings-section">
+                <h2 class="settings-title">데이터 백업</h2>
+                <p class="settings-desc">데이터를 JSON 파일로 내보내거나 가져올 수 있어요.</p>
+                <div class="settings-buttons">
+                    <button class="settings-btn" onclick="exportData()">📤 내보내기</button>
+                    <button class="settings-btn" onclick="document.getElementById('importFile').click()">📥 가져오기</button>
+                    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h2 class="settings-title">클라우드 동기화 방법</h2>
+                <p class="settings-desc">OneDrive나 Google Drive에서 동기화하려면:</p>
+                <ol class="settings-list">
+                    <li>위에서 데이터를 <strong>내보내기</strong></li>
+                    <li>클라우드 폴더에 JSON 파일 저장</li>
+                    <li>다른 PC에서 해당 파일을 <strong>가져오기</strong></li>
+                </ol>
+            </div>
+
+            <div class="settings-section danger">
+                <h2 class="settings-title">데이터 초기화</h2>
+                <p class="settings-desc">모든 할일 데이터를 삭제합니다.</p>
+                <button class="settings-btn reset" onclick="resetData()">🗑️ 전체 삭제</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // 설정
+        // ============================================
+
+        // 1. 허용할 이메일 (본인 Gmail 주소)
+        const ALLOWED_EMAIL = "fisherpark@gmail.com";
+
+        // 2. Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyBExygT3fT8Ah3ohruhJmORCXwH4h601VM",
+            authDomain: "galactic-todo.firebaseapp.com",
+            databaseURL: "https://galactic-todo-default-rtdb.firebaseio.com",
+            projectId: "galactic-todo",
+            storageBucket: "galactic-todo.firebasestorage.app",
+            messagingSenderId: "706561556446",
+            appId: "1:706561556446:web:811010c40377502a0c674f"
+        };
+
+        // Firebase 초기화
+        let db = null;
+        let currentUser = null;
+        let dbRef = null;
+
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.database();
+        } catch (e) {
+            console.log('Firebase 설정이 필요합니다.');
+        }
+
+        // 데이터 저장소
+        let todos = JSON.parse(localStorage.getItem('todos')) || {};
+        let currentDate = new Date();
+        let selectedDate = new Date();
+
+        // Google 로그인
+        async function googleLogin() {
+            if (!db) {
+                alert('Firebase 설정이 필요합니다.\n\n설정 방법:\n1. Firebase Console에서 프로젝트 생성\n2. Authentication에서 Google 로그인 활성화\n3. Realtime Database 생성\n4. 설정 정보를 코드에 입력');
+                return;
+            }
+            try {
+                console.log('로그인 시도 중...');
+                const provider = new firebase.auth.GoogleAuthProvider();
+                provider.setCustomParameters({
+                    prompt: 'select_account'
+                });
+                const result = await firebase.auth().signInWithPopup(provider);
+                console.log('로그인 성공:', result.user.email);
+            } catch (error) {
+                console.error('로그인 에러:', error);
+                let errorMsg = '로그인에 실패했습니다.\n\n';
+
+                if (error.code === 'auth/popup-blocked') {
+                    errorMsg += '팝업이 차단되었습니다.\n팝업 차단을 해제해주세요.';
+                } else if (error.code === 'auth/popup-closed-by-user') {
+                    errorMsg += '로그인 창이 닫혔습니다.\n다시 시도해주세요.';
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    errorMsg += '이 도메인이 Firebase에서 승인되지 않았습니다.\n\nFirebase Console > Authentication > Settings > Authorized domains에서\n현재 도메인을 추가해주세요.\n\n현재 도메인: ' + window.location.hostname;
+                } else if (error.code === 'auth/network-request-failed') {
+                    errorMsg += '네트워크 오류입니다.\n인터넷 연결을 확인해주세요.';
+                } else {
+                    errorMsg += error.message + '\n\n에러 코드: ' + error.code;
+                }
+
+                alert(errorMsg);
+            }
+        }
+
+        // 로그아웃
+        async function logout() {
+            try {
+                await firebase.auth().signOut();
+            } catch (error) {
+                console.error('로그아웃 에러:', error);
+            }
+        }
+
+        // 인증 상태 변경 감지
+        if (db) {
+            firebase.auth().onAuthStateChanged(async (user) => {
+                console.log('인증 상태 변경:', user ? user.email : '로그아웃');
+
+                // 이메일 체크 - 허용된 계정만 사용 가능
+                if (user && user.email !== ALLOWED_EMAIL) {
+                    console.log('권한 없는 사용자:', user.email);
+                    alert('접근 권한이 없습니다.\n\n로그인한 계정: ' + user.email + '\n허용된 계정: ' + ALLOWED_EMAIL + '\n\n다른 계정으로 다시 시도해주세요.');
+                    await firebase.auth().signOut();
+                    return;
+                }
+
+                currentUser = user;
+                updateUserUI();
+
+                if (user) {
+                    console.log('로그인 완료, 동기화 시작:', user.email);
+                    // DB 참조 설정
+                    dbRef = db.ref('users/' + user.uid + '/todos');
+                    // 실시간 동기화 시작
+                    startRealtimeSync();
+                } else {
+                    console.log('로그아웃됨, 로컬 모드로 전환');
+                    // 로컬 데이터 사용
+                    if (dbRef) {
+                        dbRef.off();
+                        dbRef = null;
+                    }
+                    todos = JSON.parse(localStorage.getItem('todos')) || {};
+                    renderCalendar();
+                    renderTodos();
+                }
+            });
+        }
+
+        // UI 업데이트
+        function updateUserUI() {
+            const userArea = document.getElementById('userArea');
+            const syncStatus = document.getElementById('syncStatus');
+
+            if (currentUser) {
+                userArea.innerHTML = `
+                    <div class="user-info">
+                        <img src="${currentUser.photoURL || ''}" class="user-avatar" alt="User">
+                        <span class="user-name">${currentUser.displayName || 'Pilot'}</span>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">DISCONNECT</button>
+                `;
+                syncStatus.className = 'sync-status';
+                syncStatus.innerHTML = '<span class="sync-dot"></span><span>SYNCED</span>';
+            } else {
+                userArea.innerHTML = `
+                    <button class="login-btn" onclick="googleLogin()">
+                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                        CONNECT
+                    </button>
+                `;
+                syncStatus.className = 'sync-status offline';
+                syncStatus.innerHTML = '<span class="sync-dot"></span><span>LOCAL MODE</span>';
+            }
+        }
+
+        // 클라우드에 데이터 저장
+        async function saveToCloud() {
+            if (!currentUser || !dbRef) return;
+
+            try {
+                await dbRef.set(todos);
+            } catch (error) {
+                console.error('데이터 저장 에러:', error);
+            }
+        }
+
+        // 실시간 동기화
+        function startRealtimeSync() {
+            if (!currentUser || !dbRef) return;
+
+            dbRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    todos = data;
+                } else {
+                    // 클라우드에 데이터 없으면 로컬 데이터 업로드
+                    saveToCloud();
+                }
+                localStorage.setItem('todos', JSON.stringify(todos));
+                renderCalendar();
+                renderTodos();
+            });
+        }
+
+        // 날짜 포맷
+        function formatDate(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function formatDateKR(date) {
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            return `${date.getMonth() + 1}월 ${date.getDate()}일 ${days[date.getDay()]}요일`;
+        }
+
+        // 저장 (로컬 + 클라우드)
+        function saveTodos() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+            if (currentUser && db) {
+                saveToCloud();
+            }
+        }
+
+        // 달력 렌더링
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            document.getElementById('calendarTitle').textContent = `${year}년 ${month + 1}월`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const startDay = firstDay.getDay();
+            const totalDays = lastDay.getDate();
+
+            const calendarDays = document.getElementById('calendarDays');
+            calendarDays.innerHTML = '';
+
+            // 이전 달 날짜
+            const prevMonthLastDay = new Date(year, month, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                const day = prevMonthLastDay - i;
+                const div = document.createElement('div');
+                div.className = 'calendar-day other-month';
+                div.textContent = day;
+                calendarDays.appendChild(div);
+            }
+
+            // 이번 달 날짜
+            const today = new Date();
+            for (let day = 1; day <= totalDays; day++) {
+                const date = new Date(year, month, day);
+                const dateStr = formatDate(date);
+                const div = document.createElement('div');
+                div.className = 'calendar-day';
+                div.textContent = day;
+
+                if (date.toDateString() === today.toDateString()) {
+                    div.classList.add('today');
+                }
+
+                if (date.toDateString() === selectedDate.toDateString()) {
+                    div.classList.add('selected');
+                }
+
+                // 할일 표시
+                const dayTodos = todos[dateStr] || [];
+                if (dayTodos.length > 0) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    const allCompleted = dayTodos.every(t => t.completed);
+                    if (!allCompleted) dot.classList.add('incomplete');
+                    div.appendChild(dot);
+                }
+
+                div.onclick = () => selectDate(date);
+                calendarDays.appendChild(div);
+            }
+
+            // 다음 달 날짜
+            const remainingDays = 42 - (startDay + totalDays);
+            for (let day = 1; day <= remainingDays; day++) {
+                const div = document.createElement('div');
+                div.className = 'calendar-day other-month';
+                div.textContent = day;
+                calendarDays.appendChild(div);
+            }
+
+            updateMonthStats();
+        }
+
+        // 날짜 선택
+        function selectDate(date) {
+            selectedDate = date;
+            renderCalendar();
+            renderTodos();
+        }
+
+        // 월 변경
+        function changeMonth(delta) {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        // 할일 렌더링
+        function renderTodos() {
+            const dateStr = formatDate(selectedDate);
+            const dayTodos = todos[dateStr] || [];
+
+            document.getElementById('selectedDateTitle').textContent = formatDateKR(selectedDate);
+
+            const today = new Date();
+            if (selectedDate.toDateString() === today.toDateString()) {
+                document.getElementById('selectedDateSub').textContent = '오늘';
+            } else {
+                const diff = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
+                if (diff > 0) {
+                    document.getElementById('selectedDateSub').textContent = `${diff}일 후`;
+                } else if (diff < 0) {
+                    document.getElementById('selectedDateSub').textContent = `${Math.abs(diff)}일 전`;
+                } else {
+                    document.getElementById('selectedDateSub').textContent = '';
+                }
+            }
+
+            const todoList = document.getElementById('todoList');
+
+            if (dayTodos.length === 0) {
+                todoList.innerHTML = '<div class="empty-state">No missions assigned<br>May the Force guide your new task</div>';
+                return;
+            }
+
+            const typeLabels = { todo: '할일', schedule: '일정', meeting: '미팅' };
+            const categoryLabels = { work: '업무', personal: '개인', health: '건강', study: '공부' };
+
+            todoList.innerHTML = dayTodos.map((todo, index) => `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                    <span class="priority-dot ${todo.priority || 'normal'}"></span>
+                    <input type="checkbox" class="todo-checkbox"
+                           ${todo.completed ? 'checked' : ''}
+                           onchange="toggleTodo(${index})">
+                    <div class="todo-content">
+                        ${todo.time ? `<span class="todo-time">${todo.time}</span>` : ''}
+                        <span class="type-badge ${todo.type || 'todo'}">${typeLabels[todo.type] || '할일'}</span>
+                        <span class="todo-text">${escapeHtml(todo.text)}</span>
+                        ${todo.category ? `<span class="category-tag">${categoryLabels[todo.category] || todo.category}</span>` : ''}
+                    </div>
+                    <div class="todo-actions">
+                        <button class="todo-btn move" onclick="openMoveModal(${index})">이동</button>
+                        <button class="todo-btn delete" onclick="deleteTodo(${index})">삭제</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // HTML 이스케이프
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 할일 추가
+        function addTodo() {
+            const input = document.getElementById('todoInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const type = document.getElementById('todoType').value;
+            const time = document.getElementById('todoTime').value;
+            const priority = document.getElementById('todoPriority').value;
+            const category = document.getElementById('todoCategory').value;
+
+            const dateStr = formatDate(selectedDate);
+            if (!todos[dateStr]) todos[dateStr] = [];
+
+            todos[dateStr].push({
+                text,
+                type,
+                time,
+                priority,
+                category,
+                completed: false,
+                createdAt: new Date().toISOString()
+            });
+
+            // 시간순 정렬 (시간 있는 것 먼저, 그 다음 중요도)
+            todos[dateStr].sort((a, b) => {
+                // 시간 있는 것 먼저
+                if (a.time && !b.time) return -1;
+                if (!a.time && b.time) return 1;
+                if (a.time && b.time) return a.time.localeCompare(b.time);
+                // 중요도 순
+                const priorityOrder = { high: 0, normal: 1, low: 2 };
+                return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+            });
+
+            saveTodos();
+            renderTodos();
+            renderCalendar();
+            input.value = '';
+            document.getElementById('todoTime').value = '';
+            input.focus();
+        }
+
+        function handleKeyPress(e) {
+            if (e.key === 'Enter') addTodo();
+        }
+
+        // 할일 토글
+        function toggleTodo(index) {
+            const dateStr = formatDate(selectedDate);
+            todos[dateStr][index].completed = !todos[dateStr][index].completed;
+            if (todos[dateStr][index].completed) {
+                todos[dateStr][index].completedAt = new Date().toISOString();
+            }
+            saveTodos();
+            renderTodos();
+            renderCalendar();
+        }
+
+        // 할일 삭제
+        function deleteTodo(index) {
+            const dateStr = formatDate(selectedDate);
+            todos[dateStr].splice(index, 1);
+            if (todos[dateStr].length === 0) delete todos[dateStr];
+            saveTodos();
+            renderTodos();
+            renderCalendar();
+        }
+
+        // 월별 통계
+        function updateMonthStats() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            let total = 0;
+            let completed = 0;
+
+            Object.keys(todos).forEach(dateStr => {
+                const date = new Date(dateStr);
+                if (date.getFullYear() === year && date.getMonth() === month) {
+                    todos[dateStr].forEach(todo => {
+                        total++;
+                        if (todo.completed) completed++;
+                    });
+                }
+            });
+
+            document.getElementById('monthTotal').textContent = total;
+            document.getElementById('monthCompleted').textContent = completed;
+            document.getElementById('monthRate').textContent = total > 0 ? Math.round(completed / total * 100) + '%' : '0%';
+        }
+
+        // 통계 페이지
+        function renderStats() {
+            let total = 0;
+            let completed = 0;
+
+            Object.values(todos).forEach(dayTodos => {
+                dayTodos.forEach(todo => {
+                    total++;
+                    if (todo.completed) completed++;
+                });
+            });
+
+            document.getElementById('totalTodos').textContent = total;
+            document.getElementById('totalCompleted').textContent = completed;
+            document.getElementById('totalRate').textContent = total > 0 ? Math.round(completed / total * 100) + '%' : '0%';
+
+            // 연속 달성일 계산
+            let streak = 0;
+            const today = new Date();
+            for (let i = 0; i < 365; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = formatDate(date);
+                const dayTodos = todos[dateStr] || [];
+
+                if (dayTodos.length === 0) {
+                    if (i === 0) continue;
+                    break;
+                }
+
+                const allCompleted = dayTodos.every(t => t.completed);
+                if (allCompleted) {
+                    streak++;
+                } else {
+                    break;
+                }
+            }
+            document.getElementById('streakDays').textContent = streak;
+
+            renderWeeklyChart();
+            renderInsights();
+        }
+
+        function renderWeeklyChart() {
+            const chart = document.getElementById('weeklyChart');
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+            const today = new Date();
+
+            let html = '';
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = formatDate(date);
+                const dayTodos = todos[dateStr] || [];
+
+                let rate = 0;
+                if (dayTodos.length > 0) {
+                    const completed = dayTodos.filter(t => t.completed).length;
+                    rate = Math.round(completed / dayTodos.length * 100);
+                }
+
+                html += `
+                    <div class="chart-bar-wrapper">
+                        <div class="chart-bar" style="height: ${Math.max(rate, 4)}%"></div>
+                        <div class="chart-bar-label">${days[date.getDay()]}</div>
+                    </div>
+                `;
+            }
+            chart.innerHTML = html;
+        }
+
+        function renderInsights() {
+            const insights = [];
+            const days = ['일', '월', '화', '수', '목', '금', '토'];
+
+            const dayStats = [0, 0, 0, 0, 0, 0, 0].map(() => ({ total: 0, completed: 0 }));
+
+            Object.keys(todos).forEach(dateStr => {
+                const date = new Date(dateStr);
+                const day = date.getDay();
+                todos[dateStr].forEach(todo => {
+                    dayStats[day].total++;
+                    if (todo.completed) dayStats[day].completed++;
+                });
+            });
+
+            let worstDay = -1;
+            let worstRate = 101;
+            let bestDay = -1;
+            let bestRate = -1;
+
+            dayStats.forEach((stat, day) => {
+                if (stat.total >= 3) {
+                    const rate = stat.completed / stat.total * 100;
+                    if (rate < worstRate) {
+                        worstRate = rate;
+                        worstDay = day;
+                    }
+                    if (rate > bestRate) {
+                        bestRate = rate;
+                        bestDay = day;
+                    }
+                }
+            });
+
+            if (bestDay >= 0) {
+                insights.push({
+                    icon: '🏆',
+                    text: `${days[bestDay]}요일 달성률이 가장 높아요 (${Math.round(bestRate)}%)`
+                });
+            }
+
+            if (worstDay >= 0 && worstRate < 70) {
+                insights.push({
+                    icon: '💪',
+                    text: `${days[worstDay]}요일 달성률을 높여보세요 (${Math.round(worstRate)}%)`
+                });
+            }
+
+            let total = 0;
+            let completed = 0;
+            Object.values(todos).forEach(dayTodos => {
+                dayTodos.forEach(todo => {
+                    total++;
+                    if (todo.completed) completed++;
+                });
+            });
+
+            if (total > 0) {
+                const rate = completed / total * 100;
+                if (rate >= 80) {
+                    insights.push({ icon: '🎉', text: '훌륭해요! 전체 달성률이 80% 이상입니다' });
+                } else if (rate >= 50) {
+                    insights.push({ icon: '👍', text: '잘하고 있어요! 조금만 더 노력해보세요' });
+                } else {
+                    insights.push({ icon: '🔥', text: '할 일을 작게 나눠서 시작해보세요' });
+                }
+            }
+
+            if (insights.length === 0) {
+                insights.push({ icon: '📊', text: '데이터가 쌓이면 분석 결과를 볼 수 있어요' });
+            }
+
+            document.getElementById('insightsList').innerHTML = insights.map(i => `
+                <div class="insight-item">
+                    <span class="insight-icon">${i.icon}</span>
+                    <span class="insight-text">${i.text}</span>
+                </div>
+            `).join('');
+        }
+
+        // 탭 전환
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.dataset.tab + '-page').classList.add('active');
+
+                if (tab.dataset.tab === 'stats') {
+                    renderStats();
+                }
+            });
+        });
+
+        // 할일 이동 관련
+        let movingTodoIndex = null;
+
+        function openMoveModal(index) {
+            const dateStr = formatDate(selectedDate);
+            const todo = todos[dateStr][index];
+            movingTodoIndex = index;
+
+            document.getElementById('moveModalTodo').textContent = todo.text;
+            document.getElementById('moveModalDate').value = dateStr;
+            document.getElementById('moveModal').classList.add('active');
+        }
+
+        function closeMoveModal(event) {
+            if (event && event.target !== document.getElementById('moveModal')) return;
+            document.getElementById('moveModal').classList.remove('active');
+            movingTodoIndex = null;
+        }
+
+        function confirmMoveTodo() {
+            const newDateStr = document.getElementById('moveModalDate').value;
+            const oldDateStr = formatDate(selectedDate);
+
+            if (!newDateStr) {
+                alert('날짜를 선택해주세요.');
+                return;
+            }
+
+            if (newDateStr === oldDateStr) {
+                alert('같은 날짜입니다. 다른 날짜를 선택해주세요.');
+                return;
+            }
+
+            const todo = todos[oldDateStr][movingTodoIndex];
+
+            // 기존 날짜에서 삭제
+            todos[oldDateStr].splice(movingTodoIndex, 1);
+            if (todos[oldDateStr].length === 0) delete todos[oldDateStr];
+
+            // 새 날짜에 추가
+            if (!todos[newDateStr]) todos[newDateStr] = [];
+            todos[newDateStr].unshift(todo);
+
+            saveTodos();
+            closeMoveModal();
+            renderCalendar();
+            renderTodos();
+
+            const newDate = new Date(newDateStr);
+            alert(`${newDate.getMonth() + 1}월 ${newDate.getDate()}일로 이동했습니다.`);
+        }
+
+        // 데이터 내보내기
+        function exportData() {
+            const data = {
+                todos: todos,
+                exportedAt: new Date().toISOString(),
+                version: '1.0'
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `todo-backup-${formatDate(new Date())}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            alert('백업 파일이 다운로드되었습니다!');
+        }
+
+        // 데이터 가져오기
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.todos) {
+                        if (confirm('기존 데이터를 가져온 데이터로 교체할까요?')) {
+                            todos = data.todos;
+                            saveTodos();
+                            renderCalendar();
+                            renderTodos();
+                            alert('데이터를 성공적으로 가져왔습니다!');
+                        }
+                    } else {
+                        alert('올바른 백업 파일이 아닙니다.');
+                    }
+                } catch (err) {
+                    alert('파일을 읽는 중 오류가 발생했습니다.');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // 데이터 초기화
+        function resetData() {
+            if (confirm('정말로 모든 데이터를 삭제할까요?\n이 작업은 되돌릴 수 없습니다.')) {
+                if (confirm('마지막 확인입니다. 정말 삭제할까요?')) {
+                    todos = {};
+                    saveTodos();
+                    renderCalendar();
+                    renderTodos();
+                    alert('모든 데이터가 삭제되었습니다.');
+                }
+            }
+        }
+
+        // 초기화
+        renderCalendar();
+        renderTodos();
+    </script>
+</body>
+</html>
