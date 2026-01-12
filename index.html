@@ -316,17 +316,19 @@
         }
 
         .calendar-day {
-            aspect-ratio: 1;
+            min-height: 52px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            padding-top: 8px;
             background: linear-gradient(180deg, rgba(20,40,60,0.8) 0%, rgba(10,25,40,0.9) 100%);
             border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
             position: relative;
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 600;
             color: #a8d4e6;
         }
@@ -361,12 +363,12 @@
 
         .calendar-day .dot {
             position: absolute;
-            bottom: 4px;
-            width: 8px;
-            height: 8px;
+            bottom: 6px;
+            width: 6px;
+            height: 6px;
             border-radius: 50%;
             background: #00ff88;
-            box-shadow: 0 0 10px #00ff88;
+            box-shadow: 0 0 8px #00ff88;
             animation: dotPulse 2s infinite;
         }
 
@@ -386,14 +388,15 @@
 
         .calendar-day.holiday .holiday-name {
             position: absolute;
-            bottom: 2px;
+            bottom: 6px;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 7px;
+            font-size: 8px;
             color: #ff6b6b;
             white-space: nowrap;
-            opacity: 0.9;
-            font-weight: 600;
+            opacity: 1;
+            font-weight: 500;
+            letter-spacing: -0.5px;
         }
 
         .calendar-day.sunday {
