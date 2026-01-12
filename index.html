@@ -1250,6 +1250,99 @@
         .stock-change.up { color: #00ff88; }
         .stock-change.down { color: #ff4444; }
 
+        /* 논문 그리드 */
+        .papers-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .paper-card {
+            background: linear-gradient(135deg, rgba(0,20,40,0.95) 0%, rgba(0,30,60,0.9) 100%);
+            border: 2px solid rgba(255,232,31,0.3);
+            padding: 20px;
+            position: relative;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .paper-card:hover {
+            border-color: rgba(255,232,31,0.6);
+            box-shadow: 0 0 25px rgba(255,232,31,0.2);
+            transform: translateY(-2px);
+        }
+
+        .paper-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #ffe81f, #ff9500);
+        }
+
+        .paper-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            font-weight: 800;
+            color: rgba(255,232,31,0.3);
+        }
+
+        .paper-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #ffe81f;
+            margin-bottom: 10px;
+            line-height: 1.5;
+            padding-right: 40px;
+        }
+
+        .paper-meta {
+            display: flex;
+            gap: 15px;
+            font-size: 11px;
+            color: #6a8a9a;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .paper-authors {
+            color: #4fd1ff;
+        }
+
+        .paper-category {
+            padding: 2px 8px;
+            background: rgba(79,209,255,0.2);
+            border: 1px solid rgba(79,209,255,0.4);
+            color: #4fd1ff;
+            font-size: 10px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .paper-summary {
+            font-size: 13px;
+            color: #b0c0d0;
+            line-height: 1.7;
+            padding: 15px;
+            background: rgba(0,15,30,0.5);
+            border-left: 3px solid rgba(255,232,31,0.4);
+            margin-top: 10px;
+        }
+
+        .paper-summary-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: #ffe81f;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
         /* 페이지 */
         .page {
             display: none;
@@ -1652,6 +1745,17 @@
                     <div class="intel-list" id="marketNewsList">
                         <div class="loading"><div class="spinner"></div></div>
                     </div>
+                </div>
+            </div>
+
+            <!-- AI 논문 섹션 -->
+            <div class="papers-section">
+                <div class="intel-header" style="margin-top:20px; padding:20px; background:linear-gradient(135deg, rgba(0,20,40,0.95) 0%, rgba(0,30,60,0.9) 100%); border:2px solid rgba(255,232,31,0.4);">
+                    <span class="intel-title">📚 AI/LLM RESEARCH PAPERS (Daily Top 5)</span>
+                    <button class="intel-refresh" onclick="loadPapers()">REFRESH</button>
+                </div>
+                <div class="papers-grid" id="papersList">
+                    <div class="loading"><div class="spinner"></div></div>
                 </div>
             </div>
         </div>
@@ -2209,7 +2313,7 @@
                 { symbol: 'PLTR', name: 'Palantir Tech', type: 'stock', category: 'AI Analytics' },
                 { symbol: 'IONQ', name: 'IonQ Inc', type: 'stock', category: 'Quantum' },
                 { symbol: 'RGTI', name: 'Rigetti Computing', type: 'stock', category: 'Quantum' },
-                { symbol: 'AION', name: 'Aion Network', type: 'crypto', category: 'Blockchain' },
+                { symbol: 'IREN', name: 'Iris Energy', type: 'stock', category: 'BTC Mining' },
                 { symbol: 'BTC', name: 'Bitcoin', type: 'crypto', category: 'Crypto' },
                 { symbol: 'ETH', name: 'Ethereum', type: 'crypto', category: 'Crypto' }
             ];
@@ -2232,7 +2336,8 @@
                                 'NVDA': { price: 147.22, change: 3.45, changePercent: 2.40 },
                                 'PLTR': { price: 78.56, change: -1.23, changePercent: -1.54 },
                                 'IONQ': { price: 42.33, change: 2.11, changePercent: 5.25 },
-                                'RGTI': { price: 12.89, change: 0.78, changePercent: 6.44 }
+                                'RGTI': { price: 12.89, change: 0.78, changePercent: 6.44 },
+                                'IREN': { price: 17.45, change: 0.52, changePercent: 3.07 }
                             };
                             return { ...stock, ...samplePrices[stock.symbol] };
                         }
@@ -2313,6 +2418,84 @@
             }
         }
 
+        async function loadPapers() {
+            const container = document.getElementById('papersList');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+
+            try {
+                // arXiv API - AI, LLM, AI Agent 관련 논문 검색
+                const searchTerms = [
+                    'large language model',
+                    'LLM agent',
+                    'AI agent',
+                    'transformer',
+                    'GPT',
+                    'neural network reasoning'
+                ];
+                const query = searchTerms.map(t => `all:"${t}"`).join('+OR+');
+
+                const response = await fetch(`https://export.arxiv.org/api/query?search_query=(cat:cs.AI+OR+cat:cs.CL+OR+cat:cs.LG)+AND+(${encodeURIComponent('ti:LLM OR ti:agent OR ti:language model OR ti:GPT OR ti:transformer')})&start=0&max_results=5&sortBy=submittedDate&sortOrder=descending`);
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, 'text/xml');
+                const entries = xml.querySelectorAll('entry');
+
+                if (entries.length > 0) {
+                    let html = '';
+                    let index = 1;
+
+                    entries.forEach(entry => {
+                        const title = entry.querySelector('title')?.textContent?.trim().replace(/\s+/g, ' ') || 'Untitled';
+                        const link = entry.querySelector('id')?.textContent || '#';
+                        const published = entry.querySelector('published')?.textContent || '';
+                        const summary = entry.querySelector('summary')?.textContent?.trim().replace(/\s+/g, ' ') || '';
+                        const authors = Array.from(entry.querySelectorAll('author name'))
+                            .map(a => a.textContent)
+                            .slice(0, 3)
+                            .join(', ');
+                        const categories = Array.from(entry.querySelectorAll('category'))
+                            .map(c => c.getAttribute('term'))
+                            .filter(c => c && c.startsWith('cs.'))
+                            .slice(0, 2);
+
+                        // 요약본 생성 (처음 300자 + 핵심 추출)
+                        const shortSummary = summary.length > 400
+                            ? summary.substring(0, 400) + '...'
+                            : summary;
+
+                        html += `
+                            <div class="paper-card" onclick="window.open('${link}', '_blank')">
+                                <div class="paper-number">#${index}</div>
+                                <div class="paper-title">${title}</div>
+                                <div class="paper-meta">
+                                    <span class="paper-authors">${authors}${authors ? ' et al.' : ''}</span>
+                                    <span>${new Date(published).toLocaleDateString()}</span>
+                                    ${categories.map(c => `<span class="paper-category">${c}</span>`).join('')}
+                                </div>
+                                <div class="paper-summary">
+                                    <span class="paper-summary-label">◆ ABSTRACT SUMMARY</span>
+                                    ${shortSummary}
+                                </div>
+                            </div>
+                        `;
+                        index++;
+                    });
+
+                    container.innerHTML = html;
+                } else {
+                    throw new Error('No papers found');
+                }
+            } catch (error) {
+                console.error('Papers error:', error);
+                container.innerHTML = `
+                    <div class="paper-card">
+                        <div class="paper-title">Unable to load research papers</div>
+                        <div class="paper-summary">arXiv API connection failed. Please try again later.</div>
+                    </div>
+                `;
+            }
+        }
+
         // 탭 전환
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
@@ -2326,6 +2509,7 @@
                     loadNews();
                     loadStocks();
                     loadMarketNews();
+                    loadPapers();
                 }
             });
         });
