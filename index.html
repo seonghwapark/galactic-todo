@@ -453,6 +453,106 @@
             letter-spacing: 1px;
         }
 
+        .stat-mini.clickable {
+            cursor: pointer;
+            transition: all 0.3s;
+            border-radius: 8px;
+        }
+
+        .stat-mini.clickable:hover {
+            background: linear-gradient(180deg, rgba(79,209,255,0.2) 0%, rgba(40,80,120,0.15) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(79, 209, 255, 0.2);
+        }
+
+        /* 상세 내역 모달 */
+        .detail-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .detail-modal.active {
+            display: flex;
+        }
+
+        .detail-modal-content {
+            background: rgba(10, 18, 35, 0.98);
+            border: 2px solid rgba(79, 209, 255, 0.5);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .detail-modal-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            color: #ffe81f;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .detail-list {
+            list-style: none;
+        }
+
+        .detail-item {
+            padding: 12px 15px;
+            background: rgba(20, 35, 55, 0.6);
+            border: 1px solid rgba(79, 209, 255, 0.2);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .detail-item.completed {
+            opacity: 0.6;
+        }
+
+        .detail-item.completed .detail-text {
+            text-decoration: line-through;
+        }
+
+        .detail-text {
+            flex: 1;
+            color: #e0f0ff;
+        }
+
+        .detail-type {
+            font-size: 10px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .detail-close {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background: rgba(79, 209, 255, 0.2);
+            border: 1px solid rgba(79, 209, 255, 0.5);
+            border-radius: 8px;
+            color: #4fd1ff;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .detail-close:hover {
+            background: rgba(79, 209, 255, 0.3);
+        }
+
         /* 할일 섹션 */
         .todo-header {
             display: flex;
@@ -477,6 +577,28 @@
             padding: 6px 14px;
             border: 1px solid rgba(255, 232, 31, 0.4);
             letter-spacing: 1px;
+        }
+
+        .search-box input {
+            background: rgba(20, 35, 55, 0.8);
+            border: 1px solid rgba(79, 209, 255, 0.3);
+            border-radius: 8px;
+            padding: 8px 15px;
+            color: #e0e0e0;
+            font-size: 13px;
+            width: 180px;
+            transition: all 0.3s;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #4fd1ff;
+            box-shadow: 0 0 15px rgba(79, 209, 255, 0.3);
+            width: 220px;
+        }
+
+        .search-box input::placeholder {
+            color: #6a8a9a;
         }
 
         /* 입력 폼 - 부드러운 스타일 */
@@ -613,9 +735,15 @@
             top: 0;
         }
 
-        .priority-indicator.high { background: linear-gradient(180deg, #ff3232, #ff6666); box-shadow: 0 0 10px #ff3232; }
+        .priority-indicator.urgent { background: linear-gradient(180deg, #ff0000, #ff4444); box-shadow: 0 0 15px #ff0000; animation: urgentPulse 1s infinite; }
+        .priority-indicator.high { background: linear-gradient(180deg, #ff6600, #ff9944); box-shadow: 0 0 10px #ff6600; }
         .priority-indicator.normal { background: linear-gradient(180deg, #ffaa00, #ffcc44); box-shadow: 0 0 10px #ffaa00; }
         .priority-indicator.low { background: linear-gradient(180deg, #00cc88, #00ff99); box-shadow: 0 0 10px #00cc88; }
+
+        @keyframes urgentPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
 
         .todo-time {
             font-family: 'Orbitron', sans-serif;
@@ -1356,17 +1484,17 @@
                     <div class="calendar-days" id="calendarDays"></div>
 
                     <div class="stats-mini">
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="monthTotal">0</div>
-                            <div class="stat-mini-label">MISSIONS</div>
+                        <div class="stat-mini clickable" onclick="showStatDetail('total')">
+                            <div class="stat-mini-value" id="dayTotal">0</div>
+                            <div class="stat-mini-label">TODAY</div>
                         </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="monthCompleted">0</div>
-                            <div class="stat-mini-label">COMPLETE</div>
+                        <div class="stat-mini clickable" onclick="showStatDetail('completed')">
+                            <div class="stat-mini-value" id="dayCompleted">0</div>
+                            <div class="stat-mini-label">DONE</div>
                         </div>
-                        <div class="stat-mini">
-                            <div class="stat-mini-value" id="monthRate">0%</div>
-                            <div class="stat-mini-label">SUCCESS</div>
+                        <div class="stat-mini clickable" onclick="showStatDetail('pending')">
+                            <div class="stat-mini-value" id="dayPending">0</div>
+                            <div class="stat-mini-label">PENDING</div>
                         </div>
                     </div>
                 </div>
@@ -1381,6 +1509,9 @@
                         <div class="todo-date">
                             <span id="selectedDateTitle"></span>
                             <span id="selectedDateSub"></span>
+                        </div>
+                        <div class="search-box">
+                            <input type="text" id="searchInput" placeholder="🔍 Search..." oninput="searchTodos(this.value)">
                         </div>
                     </div>
 
@@ -1397,7 +1528,8 @@
                             <input type="time" id="todoTime">
                             <select id="todoPriority">
                                 <option value="normal">🟡 NORMAL</option>
-                                <option value="high">🔴 CRITICAL</option>
+                                <option value="high">🟠 HIGH</option>
+                                <option value="urgent">🔴 URGENT</option>
                                 <option value="low">🟢 LOW</option>
                             </select>
                             <select id="todoCategory">
@@ -1459,6 +1591,15 @@
                     <button class="move-modal-btn cancel" onclick="closeMoveModal()">ABORT</button>
                     <button class="move-modal-btn confirm" onclick="confirmMoveTodo()">CONFIRM</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- 상세 내역 모달 -->
+        <div class="detail-modal" id="detailModal" onclick="closeDetailModal(event)">
+            <div class="detail-modal-content" onclick="event.stopPropagation()">
+                <div class="detail-modal-title" id="detailModalTitle">◆ MISSIONS</div>
+                <ul class="detail-list" id="detailList"></ul>
+                <button class="detail-close" onclick="closeDetailModal()">CLOSE</button>
             </div>
         </div>
 
@@ -1763,13 +1904,14 @@
                 calendarDays.appendChild(div);
             }
 
-            updateMonthStats();
+            updateDayStats();
         }
 
         function selectDate(date) {
             selectedDate = date;
             renderCalendar();
             renderTodos();
+            updateDayStats();
         }
 
         function changeMonth(delta) {
@@ -1844,11 +1986,16 @@
             });
 
             todos[dateStr].sort((a, b) => {
+                // 우선순위 먼저: urgent > high > normal > low
+                const priorityOrder = { urgent: 0, high: 1, normal: 2, low: 3 };
+                const prioA = priorityOrder[a.priority] ?? 2;
+                const prioB = priorityOrder[b.priority] ?? 2;
+                if (prioA !== prioB) return prioA - prioB;
+                // 같은 우선순위면 시간순
                 if (a.time && !b.time) return -1;
                 if (!a.time && b.time) return 1;
                 if (a.time && b.time) return a.time.localeCompare(b.time);
-                const priorityOrder = { high: 0, normal: 1, low: 2 };
-                return (priorityOrder[a.priority] || 1) - (priorityOrder[b.priority] || 1);
+                return 0;
             });
 
             saveTodos();
@@ -1881,26 +2028,60 @@
             renderCalendar();
         }
 
-        function updateMonthStats() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            let total = 0, completed = 0;
+        function updateDayStats() {
+            const dateStr = formatDate(selectedDate);
+            const dayTodos = todos[dateStr] || [];
+            // 할일(todo)만 통계에 포함
+            const tasks = dayTodos.filter(t => t.type === 'todo');
+            const total = tasks.length;
+            const completed = tasks.filter(t => t.completed).length;
+            const pending = total - completed;
 
-            Object.keys(todos).forEach(dateStr => {
-                const date = new Date(dateStr);
-                if (date.getFullYear() === year && date.getMonth() === month) {
-                    todos[dateStr].forEach(todo => {
-                        // 할일(todo)만 통계에 포함
-                        if (todo.type !== 'todo') return;
-                        total++;
-                        if (todo.completed) completed++;
-                    });
-                }
-            });
+            document.getElementById('dayTotal').textContent = total;
+            document.getElementById('dayCompleted').textContent = completed;
+            document.getElementById('dayPending').textContent = pending;
+        }
 
-            document.getElementById('monthTotal').textContent = total;
-            document.getElementById('monthCompleted').textContent = completed;
-            document.getElementById('monthRate').textContent = total > 0 ? Math.round(completed / total * 100) + '%' : '0%';
+        function showStatDetail(type) {
+            const dateStr = formatDate(selectedDate);
+            const dayTodos = todos[dateStr] || [];
+            const tasks = dayTodos.filter(t => t.type === 'todo');
+
+            let filtered = [];
+            let title = '';
+
+            if (type === 'total') {
+                filtered = tasks;
+                title = '◆ ALL TASKS';
+            } else if (type === 'completed') {
+                filtered = tasks.filter(t => t.completed);
+                title = '◆ COMPLETED';
+            } else if (type === 'pending') {
+                filtered = tasks.filter(t => !t.completed);
+                title = '◆ PENDING';
+            }
+
+            document.getElementById('detailModalTitle').textContent = title + ` (${formatDateKR(selectedDate)})`;
+
+            const list = document.getElementById('detailList');
+            if (filtered.length === 0) {
+                list.innerHTML = '<li class="detail-item"><span class="detail-text" style="color:#6a8a9a;">No items</span></li>';
+            } else {
+                list.innerHTML = filtered.map(todo => `
+                    <li class="detail-item ${todo.completed ? 'completed' : ''}">
+                        <span class="detail-text">${escapeHtml(todo.text)}</span>
+                        ${todo.priority === 'urgent' ? '<span style="color:#ff6b6b;">🔴</span>' : ''}
+                        ${todo.priority === 'high' ? '<span style="color:#ffa500;">🟠</span>' : ''}
+                    </li>
+                `).join('');
+            }
+
+            document.getElementById('detailModal').classList.add('active');
+        }
+
+        function closeDetailModal(event) {
+            if (event && event.target !== document.getElementById('detailModal')) return;
+            document.getElementById('detailModal').classList.remove('active');
         }
 
         function renderStats() {
@@ -2097,9 +2278,94 @@
             }
         }
 
+        // 알림 기능
+        let notificationPermission = Notification.permission;
+
+        async function requestNotificationPermission() {
+            if ('Notification' in window) {
+                notificationPermission = await Notification.requestPermission();
+                if (notificationPermission === 'granted') {
+                    alert('알림이 활성화되었습니다!');
+                }
+            }
+        }
+
+        function checkNotifications() {
+            if (notificationPermission !== 'granted') return;
+
+            const now = new Date();
+            const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+            const dateStr = formatDate(now);
+            const dayTodos = todos[dateStr] || [];
+
+            dayTodos.forEach(todo => {
+                if (todo.time === currentTime && !todo.completed && !todo.notified) {
+                    new Notification('GALACTIC COMMAND', {
+                        body: `🚀 ${todo.text}`,
+                        icon: 'https://cdn-icons-png.flaticon.com/512/616/616408.png'
+                    });
+                    todo.notified = true;
+                    saveTodos();
+                }
+            });
+        }
+
+        // 1분마다 알림 체크
+        setInterval(checkNotifications, 60000);
+
+        // 검색 기능
+        function searchTodos(query) {
+            if (!query.trim()) {
+                renderTodos();
+                return;
+            }
+
+            const results = [];
+            Object.keys(todos).forEach(dateStr => {
+                todos[dateStr].forEach((todo, index) => {
+                    if (todo.text.toLowerCase().includes(query.toLowerCase())) {
+                        results.push({ ...todo, date: dateStr, index });
+                    }
+                });
+            });
+
+            const todoList = document.getElementById('todoList');
+            if (results.length === 0) {
+                todoList.innerHTML = '<div class="empty-state">No results found</div>';
+            } else {
+                todoList.innerHTML = results.map(todo => `
+                    <div class="todo-item ${todo.completed ? 'completed' : ''}" onclick="goToDate('${todo.date}')">
+                        <div class="priority-indicator ${todo.priority || 'normal'}"></div>
+                        <div class="todo-content">
+                            <span class="todo-text">${escapeHtml(todo.text)}</span>
+                            <span style="color:#6a8a9a;font-size:11px;margin-left:10px;">${todo.date}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function goToDate(dateStr) {
+            selectedDate = new Date(dateStr);
+            document.getElementById('searchInput').value = '';
+            renderCalendar();
+            renderTodos();
+            updateDayStats();
+        }
+
         // 초기화
         renderCalendar();
         renderTodos();
+        updateDayStats();
+
+        // 알림 권한 체크
+        if ('Notification' in window && Notification.permission === 'default') {
+            setTimeout(() => {
+                if (confirm('할일 알림을 받으시겠습니까?')) {
+                    requestNotificationPermission();
+                }
+            }, 3000);
+        }
     </script>
 </body>
 </html>
