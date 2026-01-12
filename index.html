@@ -281,7 +281,7 @@
             font-size: 20px;
             font-weight: bold;
             transition: all 0.3s;
-            clip-path: polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+            border-radius: 8px;
         }
 
         .calendar-nav button:hover {
@@ -378,6 +378,30 @@
         .calendar-day .dot.incomplete {
             background: #ff6b35;
             box-shadow: 0 0 10px #ff6b35;
+        }
+
+        .calendar-day.holiday {
+            color: #ff6b6b;
+        }
+
+        .calendar-day.holiday .holiday-name {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 7px;
+            color: #ff6b6b;
+            white-space: nowrap;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+
+        .calendar-day.sunday {
+            color: #ff6b6b;
+        }
+
+        .calendar-day.saturday {
+            color: #4fd1ff;
         }
 
         /* 미니 통계 */
@@ -1492,6 +1516,52 @@
         let currentDate = new Date();
         let selectedDate = new Date();
 
+        // 한국 공휴일 (고정 공휴일 + 2024-2027 음력 공휴일)
+        const koreanHolidays = {
+            // 고정 공휴일
+            '01-01': '신정',
+            '03-01': '삼일절',
+            '05-05': '어린이날',
+            '06-06': '현충일',
+            '08-15': '광복절',
+            '10-03': '개천절',
+            '10-09': '한글날',
+            '12-25': '크리스마스',
+            // 2025년 음력 공휴일
+            '2025-01-28': '설날연휴',
+            '2025-01-29': '설날',
+            '2025-01-30': '설날연휴',
+            '2025-05-05': '부처님오신날',
+            '2025-10-05': '추석연휴',
+            '2025-10-06': '추석',
+            '2025-10-07': '추석연휴',
+            // 2026년 음력 공휴일
+            '2026-02-16': '설날연휴',
+            '2026-02-17': '설날',
+            '2026-02-18': '설날연휴',
+            '2026-05-24': '부처님오신날',
+            '2026-09-24': '추석연휴',
+            '2026-09-25': '추석',
+            '2026-09-26': '추석연휴',
+            // 2027년 음력 공휴일
+            '2027-02-06': '설날연휴',
+            '2027-02-07': '설날',
+            '2027-02-08': '설날연휴',
+            '2027-05-13': '부처님오신날',
+            '2027-10-14': '추석연휴',
+            '2027-10-15': '추석',
+            '2027-10-16': '추석연휴'
+        };
+
+        function getHoliday(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const fullDate = `${year}-${month}-${day}`;
+            const monthDay = `${month}-${day}`;
+            return koreanHolidays[fullDate] || koreanHolidays[monthDay] || null;
+        }
+
         // Google 로그인
         async function googleLogin() {
             if (!db) {
@@ -1634,9 +1704,28 @@
             for (let day = 1; day <= totalDays; day++) {
                 const date = new Date(year, month, day);
                 const dateStr = formatDate(date);
+                const dayOfWeek = date.getDay();
                 const div = document.createElement('div');
                 div.className = 'calendar-day';
-                div.textContent = day;
+
+                // 날짜 숫자
+                const dayNum = document.createElement('span');
+                dayNum.textContent = day;
+                div.appendChild(dayNum);
+
+                // 주말 색상
+                if (dayOfWeek === 0) div.classList.add('sunday');
+                if (dayOfWeek === 6) div.classList.add('saturday');
+
+                // 공휴일 체크
+                const holiday = getHoliday(date);
+                if (holiday) {
+                    div.classList.add('holiday');
+                    const holidayLabel = document.createElement('div');
+                    holidayLabel.className = 'holiday-name';
+                    holidayLabel.textContent = holiday;
+                    div.appendChild(holidayLabel);
+                }
 
                 if (date.toDateString() === today.toDateString()) div.classList.add('today');
                 if (date.toDateString() === selectedDate.toDateString()) div.classList.add('selected');
