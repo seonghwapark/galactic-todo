@@ -1739,12 +1739,15 @@
                 if (date.toDateString() === today.toDateString()) div.classList.add('today');
                 if (date.toDateString() === selectedDate.toDateString()) div.classList.add('selected');
 
-                // 일정(schedule)은 통계에서 제외 - 할일만 dot 표시
-                const dayTasks = (todos[dateStr] || []).filter(t => t.type !== 'schedule');
-                if (dayTasks.length > 0) {
+                const dayTodos = todos[dateStr] || [];
+                if (dayTodos.length > 0) {
                     const dot = document.createElement('div');
                     dot.className = 'dot';
-                    if (!dayTasks.every(t => t.completed)) dot.classList.add('incomplete');
+                    // 할일(todo)만 완료 체크에 포함
+                    const dayTasks = dayTodos.filter(t => t.type === 'todo');
+                    if (dayTasks.length > 0 && !dayTasks.every(t => t.completed)) {
+                        dot.classList.add('incomplete');
+                    }
                     div.appendChild(dot);
                 }
 
@@ -1887,8 +1890,8 @@
                 const date = new Date(dateStr);
                 if (date.getFullYear() === year && date.getMonth() === month) {
                     todos[dateStr].forEach(todo => {
-                        // 일정(schedule)은 통계에서 제외
-                        if (todo.type === 'schedule') return;
+                        // 할일(todo)만 통계에 포함
+                        if (todo.type !== 'todo') return;
                         total++;
                         if (todo.completed) completed++;
                     });
@@ -1905,7 +1908,7 @@
             Object.values(todos).forEach(dayTodos => {
                 dayTodos.forEach(todo => {
                     // 일정(schedule)은 통계에서 제외
-                    if (todo.type === 'schedule') return;
+                    if (todo.type !== 'todo') return;
                     total++;
                     if (todo.completed) completed++;
                 });
@@ -1921,7 +1924,7 @@
                 const date = new Date(today);
                 date.setDate(date.getDate() - i);
                 const dateStr = formatDate(date);
-                const dayTodos = (todos[dateStr] || []).filter(t => t.type !== 'schedule');
+                const dayTodos = (todos[dateStr] || []).filter(t => t.type === 'todo');
                 if (dayTodos.length === 0) { if (i === 0) continue; break; }
                 if (dayTodos.every(t => t.completed)) streak++;
                 else break;
@@ -1943,7 +1946,7 @@
                 date.setDate(date.getDate() - i);
                 const dateStr = formatDate(date);
                 // 일정(schedule)은 통계에서 제외
-                const dayTodos = (todos[dateStr] || []).filter(t => t.type !== 'schedule');
+                const dayTodos = (todos[dateStr] || []).filter(t => t.type === 'todo');
                 let rate = 0;
                 if (dayTodos.length > 0) {
                     rate = Math.round(dayTodos.filter(t => t.completed).length / dayTodos.length * 100);
@@ -1962,7 +1965,7 @@
                 const day = new Date(dateStr).getDay();
                 todos[dateStr].forEach(todo => {
                     // 일정(schedule)은 통계에서 제외
-                    if (todo.type === 'schedule') return;
+                    if (todo.type !== 'todo') return;
                     dayStats[day].total++;
                     if (todo.completed) dayStats[day].completed++;
                 });
@@ -1984,7 +1987,7 @@
             Object.values(todos).forEach(dayTodos => {
                 dayTodos.forEach(todo => {
                     // 일정(schedule)은 통계에서 제외
-                    if (todo.type === 'schedule') return;
+                    if (todo.type !== 'todo') return;
                     total++;
                     if (todo.completed) completed++;
                 });
